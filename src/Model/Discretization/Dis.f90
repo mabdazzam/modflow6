@@ -401,6 +401,7 @@ contains
       &/1x, 'Number of user nodes: ',I0,&
       &/1X, 'Number of nodes in solution: ', I0, //)"
     !
+    integer :: ktop
     ! -- count active cells
     this%nodes = 0
     do k = 1, this%nlay
@@ -426,11 +427,19 @@ contains
         do j = 1, this%ncol
           if (this%idomain(j, i, k) < 1) cycle
           if (k > 1) then
-            top = this%bot3d(j, i, k - 1)
+            ktop = k - 1
+            do while (ktop >= 1 .and. this%idomain(j, i, ktop) < 1)
+              ktop = ktop - 1
+            end do
+            if (ktop >= 1) then
+              top = this%bot3d(j, i, ktop)
+            else
+              top = this%top2d(j, i)
+            end if
           else
             top = this%top2d(j, i)
           end if
-          dz = top - this%bot3d(j, i, k)
+          dz = top - this%bot3d(j, i, k) !+ 1e-44 ! smallest number to pass the test 
           if (dz <= DZERO) then
             n = n + 1
             write (errmsg, fmt=fmtdz) k, i, j, top, this%bot3d(j, i, k)
