@@ -13,11 +13,13 @@ date = datetime.date.today().strftime("%b %d, %Y")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("toml_path")
-    parser.add_argument("tex_path")
+    parser.add_argument("--toml", default="develop.toml")
+    parser.add_argument("--tex", default="develop.tex")
+    parser.add_argument("--patch", default=False, action="store_true")
     args = parser.parse_args()
-    toml_path = Path(args.toml_path).expanduser().absolute()
-    tex_path = Path(args.tex_path).expanduser().absolute()
+    toml_path = Path(args.toml).expanduser().absolute()
+    tex_path = Path(args.tex).expanduser().absolute()
+    patch = args.patch
     if not toml_path.is_file():
         warn(f"Release notes TOML file not found: {toml_path}")
         sys.exit(0)
@@ -33,7 +35,7 @@ if __name__ == "__main__":
         trim_blocks=True,
         lstrip_blocks=True,
         line_statement_prefix="_",
-        keep_trailing_newline=True,
+        keep_trailing_newline=False,
         # since latex uses curly brackets,
         # replace block/var start/end tags
         block_start_string="([",
@@ -45,9 +47,16 @@ if __name__ == "__main__":
     with open(tex_path, "w") as tex_file:
         with open(toml_path, "rb") as toml_file:
             content = tomli.load(toml_file)
-            sections = content.get("sections", [])
-            subsections = content.get("subsections", [])
+            sections = content.get("sections", {})
+            subsections = content.get("subsections", {})
             items = content.get("items", [])
+            # if patch, only include fixes
+            if patch:
+                items = [item for item in items if item["section"] == "fixes"]
+                sections = {k: v for k, v in sections.items() if k == "fixes"}
+                subsections = {
+                    k: subsections[k] for k in [item["subsection"] for item in items]
+                }
             # make sure each item has a subsection entry even if empty
             for item in items:
                 if not item.get("subsection"):

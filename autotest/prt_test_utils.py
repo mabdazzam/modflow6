@@ -178,6 +178,8 @@ class FlopyReadmeCase:
             nlay=FlopyReadmeCase.nlay,
             nrow=FlopyReadmeCase.nrow,
             ncol=FlopyReadmeCase.ncol,
+            top=FlopyReadmeCase.top,
+            botm=FlopyReadmeCase.botm,
         )
 
         # create gwf initial conditions package
@@ -309,7 +311,7 @@ def get_ireason_code(output_event):
         if output_event == "RELEASE"
         else (
             1
-            if output_event == "TRANSIT"
+            if output_event == "EXITFEAT"
             else (
                 2
                 if output_event == "TIMESTEP"

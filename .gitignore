@@ -113,6 +113,7 @@ CMakeFiles/
 .build_rtd_docs/_mf6io
 .build_rtd_docs/_mf6src
 .build_rtd_docs/_mf6run
+.build_rtd_docs/_misc
 .build_rtd_docs/_dev
 latex/
 html/
@@ -122,6 +123,7 @@ doc/ReleaseNotes/run-time-comparison.tex
 doc/ReleaseNotes/deprecations.tex
 doc/mf6io/mf6ivar/md
 doc/mf6io/mf6ivar/tex
+doc/mf6io/mf6ivar/dfn/toml
 
 # Intel Fortran Visual Studio intermediate files
 msvs/*.fdz
@@ -152,3 +154,4 @@ autotest/notebooks/
 .pixi
 
 **/*.lock
+doc/ReleaseNotes/develop.tex

@@ -107,7 +107,7 @@ module GwfModule
   character(len=LENPACKAGETYPE), dimension(GWF_NBASEPKG) :: GWF_BASEPKG
   data GWF_BASEPKG/'DIS6 ', 'DISV6', 'DISU6', '     ', '     ', & !  5
                   &'NPF6 ', 'BUY6 ', 'VSC6 ', 'GNC6 ', '     ', & ! 10
-                  &'HFB6 ', 'STO6 ', 'IC6  ', '     ', '     ', & ! 15
+                  &'HFB6 ', 'STO6 ', 'IC6  ', 'CSUB6', '     ', & ! 15
                   &'MVR6 ', 'OC6  ', 'OBS6 ', '     ', '     ', & ! 20
                   &30*'     '/ ! 50
 
@@ -119,7 +119,7 @@ module GwfModule
   integer(I4B), parameter :: GWF_NMULTIPKG = 50
   character(len=LENPACKAGETYPE), dimension(GWF_NMULTIPKG) :: GWF_MULTIPKG
   data GWF_MULTIPKG/'WEL6 ', 'DRN6 ', 'RIV6 ', 'GHB6 ', '     ', & !  5
-                   &'RCH6 ', 'EVT6 ', 'CHD6 ', 'CSUB6', '     ', & ! 10
+                   &'RCH6 ', 'EVT6 ', 'CHD6 ', '     ', '     ', & ! 10
                    &'MAW6 ', 'SFR6 ', 'LAK6 ', 'UZF6 ', 'API6 ', & ! 15
                    &35*'     '/ ! 50
 
@@ -1272,7 +1272,8 @@ contains
     case ('UZF6')
       call uzf_create(packobj, ipakid, ipaknum, inunit, iout, this%name, pakname)
     case ('API6')
-      call api_create(packobj, ipakid, ipaknum, inunit, iout, this%name, pakname)
+      call api_create(packobj, ipakid, ipaknum, inunit, iout, this%name, &
+                      pakname, mempath)
     case default
       write (errmsg, *) 'Invalid package type: ', filtyp
       call store_error(errmsg, terminate=.TRUE.)
@@ -1437,9 +1438,14 @@ contains
     integer(I4B), dimension(:), allocatable :: bndpkgs
     integer(I4B) :: n
     integer(I4B) :: indis = 0 ! DIS enabled flag
-    character(len=LENMEMPATH) :: mempathnpf = ''
+    character(len=LENMEMPATH) :: mempathbuy = ''
+    character(len=LENMEMPATH) :: mempathcsub = ''
+    character(len=LENMEMPATH) :: mempathhfb = ''
     character(len=LENMEMPATH) :: mempathic = ''
+    character(len=LENMEMPATH) :: mempathnpf = ''
+    character(len=LENMEMPATH) :: mempathoc = ''
     character(len=LENMEMPATH) :: mempathsto = ''
+    character(len=LENMEMPATH) :: mempathvsc = ''
     !
     ! -- set input model memory path
     model_mempath = create_mem_path(component=this%name, context=idm_context)
@@ -1473,25 +1479,30 @@ contains
         this%innpf = 1
         mempathnpf = mempath
       case ('BUY6')
-        this%inbuy = inunit
+        this%inbuy = 1
+        mempathbuy = mempath
       case ('VSC6')
-        this%invsc = inunit
+        this%invsc = 1
+        mempathvsc = mempath
       case ('GNC6')
         this%ingnc = inunit
       case ('HFB6')
-        this%inhfb = inunit
+        this%inhfb = 1
+        mempathhfb = mempath
       case ('STO6')
         this%insto = 1
         mempathsto = mempath
       case ('CSUB6')
-        this%incsub = inunit
+        this%incsub = 1
+        mempathcsub = mempath
       case ('IC6')
         this%inic = 1
         mempathic = mempath
       case ('MVR6')
         this%inmvr = inunit
       case ('OC6')
-        this%inoc = inunit
+        this%inoc = 1
+        mempathoc = mempath
       case ('OBS6')
         this%inobs = inunit
       case ('WEL6', 'DRN6', 'RIV6', 'GHB6', 'RCH6', &
@@ -1507,16 +1518,16 @@ contains
     ! -- Create packages that are tied directly to model
     call npf_cr(this%npf, this%name, mempathnpf, this%innpf, this%iout)
     call xt3d_cr(this%xt3d, this%name, this%innpf, this%iout)
-    call buy_cr(this%buy, this%name, this%inbuy, this%iout)
-    call vsc_cr(this%vsc, this%name, this%invsc, this%iout)
+    call buy_cr(this%buy, this%name, mempathbuy, this%inbuy, this%iout)
+    call vsc_cr(this%vsc, this%name, mempathvsc, this%invsc, this%iout)
     call gnc_cr(this%gnc, this%name, this%ingnc, this%iout)
-    call hfb_cr(this%hfb, this%name, this%inhfb, this%iout)
+    call hfb_cr(this%hfb, this%name, mempathhfb, this%inhfb, this%iout)
     call sto_cr(this%sto, this%name, mempathsto, this%insto, this%iout)
-    call csub_cr(this%csub, this%name, this%insto, this%sto%packName, &
-                 this%incsub, this%iout)
+    call csub_cr(this%csub, this%name, mempathcsub, this%insto, &
+                 this%sto%packName, this%incsub, this%iout)
     call ic_cr(this%ic, this%name, mempathic, this%inic, this%iout, this%dis)
     call mvr_cr(this%mvr, this%name, this%inmvr, this%iout, this%dis)
-    call oc_cr(this%oc, this%name, this%inoc, this%iout)
+    call oc_cr(this%oc, this%name, mempathoc, this%inoc, this%iout)
     call gwf_obs_cr(this%obs, this%inobs)
     !
     ! -- Check to make sure that required ftype's have been specified
