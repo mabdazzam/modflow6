@@ -64,6 +64,7 @@ module DisModule
     procedure :: log_options
     procedure :: log_dimensions
     procedure :: log_griddata
+    procedure, private :: active_cell_top
     procedure :: grid_finalize
     procedure :: write_grb
     procedure :: allocate_scalars
@@ -402,8 +403,6 @@ contains
       "(/1x, 'The specified IDOMAIN results in a reduced number of cells.',&
       &/1x, 'Number of user nodes: ',I0,&
       &/1X, 'Number of nodes in solution: ', I0, //)"
-    !
-    integer :: ktop
     ! -- count active cells
     this%nodes = 0
     do k = 1, this%nlay
@@ -428,20 +427,8 @@ contains
       do i = 1, this%nrow
         do j = 1, this%ncol
           if (this%idomain(j, i, k) < 1) cycle
-          if (k > 1) then
-            ktop = k - 1
-            do while (ktop >= 1 .and. this%idomain(j, i, ktop) < 1)
-              ktop = ktop - 1
-            end do
-            if (ktop >= 1) then
-              top = this%bot3d(j, i, ktop)
-            else
-              top = this%top2d(j, i)
-            end if
-          else
-            top = this%top2d(j, i)
-          end if
-          dz = top - this%bot3d(j, i, k) !+ 1e-44 ! smallest number to pass the test 
+          top = this%active_cell_top(j, i, k)
+          dz = top - this%bot3d(j, i, k)
           if (dz <= DZERO) then
             n = n + 1
             write (errmsg, fmt=fmtdz) k, i, j, top, this%bot3d(j, i, k)
@@ -525,11 +512,7 @@ contains
           noder = node
           if (this%nodes < this%nodesuser) noder = this%nodereduced(node)
           if (noder <= 0) cycle
-          if (k > 1) then
-            top = this%bot3d(j, i, k - 1)
-          else
-            top = this%top2d(j, i)
-          end if
+          top = this%active_cell_top(j, i, k)
           this%top(noder) = top
           this%bot(noder) = this%bot3d(j, i, k)
           this%area(noder) = this%delr(j) * this%delc(i)
@@ -552,6 +535,34 @@ contains
     this%njas = this%con%njas
     !
   end subroutine grid_finalize
+
+  !> @brief return the top elevation of an active structured-grid cell
+  !<
+  function active_cell_top(this, column, row, layer) result(top)
+    ! -- dummy
+    class(DisType), intent(in) :: this
+    integer(I4B), intent(in) :: column
+    integer(I4B), intent(in) :: row
+    integer(I4B), intent(in) :: layer
+    ! -- locals
+    integer(I4B) :: upper_layer
+    real(DP) :: top
+    !
+    ! -- the model top bounds an active cell when no active layer lies above it
+    top = this%top2d(column, row)
+    if (layer == 1) return
+    !
+    ! -- pass-through cells do not define an aquifer boundary, so continue
+    !    upward until the first non-pass-through layer supplies the interface
+    upper_layer = layer - 1
+    do while (upper_layer >= 1 .and. &
+              this%idomain(column, row, upper_layer) < 0)
+      upper_layer = upper_layer - 1
+    end do
+    if (upper_layer >= 1) then
+      top = this%bot3d(column, row, upper_layer)
+    end if
+  end function active_cell_top
 
   !> @brief Write a binary grid file
   !<
